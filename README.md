@@ -3,7 +3,7 @@
 ## How to Use
 
 ## Prepare package
-
+[InstallCUDA](/InstallCUDA.md)
 ```
 git clone https://github.com/qqwweee/keras-yolo3
 ln -s keras-yolo3/yolo3 .
