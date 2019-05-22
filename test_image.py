@@ -2,7 +2,6 @@ import sys
 import argparse
 import glob
 import os
-from yolo import YOLO, detect_video
 from PIL import Image
 
 class NotFoundError(Exception):
@@ -48,6 +47,7 @@ def detect_img(yolo):
             continue
         else:
             r_image, objects = yolo.detect_image(image)
+            print(objects)
             r_image.save(
                 os.path.join(
                     image_output_dir,
@@ -85,18 +85,18 @@ if __name__ == '__main__':
     Command line options
     '''
     parser.add_argument(
-        '--model', type=str, default=YOLO.get_defaults("model_path"),
-        help='path to model weight file, default ' + YOLO.get_defaults("model_path")
+        '--model', type=str,
+        help='path to model weight file'
     )
 
     parser.add_argument(
         '--anchors', type=str,
-        help='path to anchor definitions, default ' + YOLO.get_defaults("anchors_path")
+        help='path to anchor definitions'
     )
 
     parser.add_argument(
-        '--classes', type=str,
-        help='path to class definitions, default ' + YOLO.get_defaults("classes_path")
+        "-c", '--classes', type=str,
+        help='path to class definitions'
     )
 
     parser.add_argument(
@@ -107,7 +107,27 @@ if __name__ == '__main__':
         "-t", "--test_file", nargs='?', type=str, default=None,
         help="test file path"
     )
+    parser.add_argument(
+        '-n',
+        '--network',
+        type=str,
+        choices=[
+            'yolo',
+            'mrcnn'],
+        default='yolo',
+        help='Network structure')
 
     FLAGS = parser.parse_args()
 
-    detect_img(YOLO(**vars(FLAGS)))
+    if FLAGS.network == "yolo":
+        from yolo import YOLO, detect_video
+        model = YOLO(**vars(FLAGS))
+
+    elif FLAGS.network == "mrcnn":
+        from mask_rcnn import MaskRCNN
+        model = MaskRCNN(FLAGS.model, FLAGS.classes)
+
+    else:
+        parser.error("Unknown network")
+    detect_img(model)
+

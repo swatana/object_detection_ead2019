@@ -8,20 +8,33 @@
 git clone https://github.com/qqwweee/keras-yolo3
 ln -s keras-yolo3/yolo3 .
 pip3 install -r requirements.txt
+
+git clone https://github.com/matterport/Mask_RCNN.git
+ln -s Mask_RCNN/mrcnn .
+pip3 install -r Mask_RCNN/requirements.txt
 ```
 
 ## Prepare Model
 
 ```
 wget https://pjreddie.com/media/files/yolov3.weights
-python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo/yolo.h5
+python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
+wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5 -P model_data/mrcnn/coco/
 ```
 
 ## Run
 
 ```
-python3 test_video.py --model=model_data/yolo.h5 --anchors=model_data/yolo_anchors.txt --classes=model_data/coco_classes.txt --image
+python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt --image
 Input image filename:images/pics/dog.jpg
+```
+
+## Run glob pattern
+
+```
+python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt -i=images/pics/*jpg
+
+python3 test_image.py --model=model_data/mrcnn/coco/mask_rcnn_coco.h5 --classes=model_data/mrcnn/coco/classes.txt -i=images/pics/eagle.jpg -n=mrcnn
 ```
 
 ## Prepare Dataset
@@ -44,8 +57,8 @@ filepath x1,y1,x2,y2,class_id x1,y1,x2,y2,class_id....
 ## Train Model
 
 ```
-python3 scripts/data_split.py -a=train.txt -n=10 -c=model_data/yolo/coco_classes.txt
-python3 keras-yolo3/train.py -m model_data/yolo/yolo.h5 -c=model_data/coco_classes.txt -t=_000/train.txt
+python3 scripts/data_split.py -a=train.txt -n=10 -c=model_data/yolo3/coco/coco_classes.txt
+python3 keras-yolo3/train.py -m model_data/yolo3/coco/yolo.h5 -c=model_data/yolo3/coco/coco_classes.txt -t=_000/train.txt
 ```
 
 ## Evaluate Model
