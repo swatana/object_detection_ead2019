@@ -25,6 +25,7 @@ wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_co
 ## Run
 
 ```
+python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt
 python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt --image
 Input image filename:images/pics/dog.jpg
 ```
