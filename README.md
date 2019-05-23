@@ -12,6 +12,9 @@ pip3 install -r requirements.txt
 git clone https://github.com/matterport/Mask_RCNN.git
 ln -s Mask_RCNN/mrcnn .
 pip3 install -r Mask_RCNN/requirements.txt
+
+git clone https://github.com/see--/keras-centernet.git
+ln -s keras-centernet/keras_centernet .
 ```
 
 ## Prepare Model
@@ -19,7 +22,10 @@ pip3 install -r Mask_RCNN/requirements.txt
 ```
 wget https://pjreddie.com/media/files/yolov3.weights
 python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
+
 wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5 -P model_data/mrcnn/coco/
+
+wget https://github.com/see--/keras-centernet/releases/download/0.1.0/ctdet_coco_hg.hdf5 -P model_data/keras-centernet/coco/
 ```
 
 ## Run
@@ -36,6 +42,8 @@ Input image filename:images/pics/dog.jpg
 python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt -i=images/pics/*jpg
 
 python3 test_image.py --model=model_data/mrcnn/coco/mask_rcnn_coco.h5 --classes=model_data/mrcnn/coco/classes.txt -i=images/pics/eagle.jpg -n=mrcnn
+
+python3 test_image.py --model=ctdet_coco_hg.hdf5 --classes=model_data/keras-centernet/coco/classes.txt -i=images/pics/*.jpg -n=keras-centernet
 ```
 
 ## Prepare Dataset

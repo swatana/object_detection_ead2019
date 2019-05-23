@@ -17,7 +17,7 @@ def get_unused_dir_num(pdir, pref=None):
             return os.path.join(pdir, search_dir_name)
     raise NotFoundError('Error')
 
-def detect_img(yolo):
+def detect_img(model):
 
     image_glob = FLAGS.image_glob
     test_file = FLAGS.test_file
@@ -46,7 +46,7 @@ def detect_img(yolo):
             print('Open Error! Try again!')
             continue
         else:
-            r_image, objects = yolo.detect_image(image)
+            r_image, objects = model.detect_image(image)
             print(objects)
             r_image.save(
                 os.path.join(
@@ -74,7 +74,7 @@ def detect_img(yolo):
                         file=f
                     )
 
-    yolo.close_session()
+    model.close_session()
 
 FLAGS = None
 
@@ -113,7 +113,8 @@ if __name__ == '__main__':
         type=str,
         choices=[
             'yolo',
-            'mrcnn'],
+            'mrcnn',
+            'keras-centernet'],
         default='yolo',
         help='Network structure')
 
@@ -126,6 +127,10 @@ if __name__ == '__main__':
     elif FLAGS.network == "mrcnn":
         from mask_rcnn import MaskRCNN
         model = MaskRCNN(FLAGS.model, FLAGS.classes)
+
+    elif FLAGS.network == "keras-centernet":
+        from centernet import CENTERNET
+        model = CENTERNET(FLAGS.model, FLAGS.classes)
 
     else:
         parser.error("Unknown network")
