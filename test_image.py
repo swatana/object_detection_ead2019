@@ -85,12 +85,12 @@ if __name__ == '__main__':
     Command line options
     '''
     parser.add_argument(
-        '--model', type=str,
+        '-m', '--model', type=str,
         help='path to model weight file'
     )
 
     parser.add_argument(
-        '--anchors', type=str,
+        '-a', '--anchors', type=str,
         help='path to anchor definitions'
     )
 
