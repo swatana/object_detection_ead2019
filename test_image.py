@@ -22,16 +22,23 @@ def detect_img(model):
     image_glob = FLAGS.image_glob
     test_file = FLAGS.test_file
     print(image_glob)
-    print(FLAGS.model)
-    result_name = os.path.basename(FLAGS.model)
+    print(FLAGS.model_path)
+    result_name = os.path.basename(FLAGS.model_path)
 
+    image_source = ""
     if image_glob:
         img_path_list = glob.glob(image_glob)
+        image_source = image_glob
     else:
         with open(test_file) as f:
             img_path_list = [line.strip().split()[0] for line in f]
+        image_source = test_file
 
-    output_dir = get_unused_dir_num(pdir="results/", pref=result_name)
+    pdir = os.path.join(
+        "results", FLAGS.network, os.path.basename(
+            os.path.dirname(image_source)))
+
+    output_dir = get_unused_dir_num(pdir=pdir, pref=result_name)
     image_output_dir = os.path.join(output_dir, "images")
     os.makedirs(image_output_dir, exist_ok=True)
     prediction_output_dir = os.path.join(
@@ -47,7 +54,6 @@ def detect_img(model):
             continue
         else:
             r_image, objects = model.detect_image(image)
-            print(objects)
             r_image.save(
                 os.path.join(
                     image_output_dir,
@@ -85,17 +91,17 @@ if __name__ == '__main__':
     Command line options
     '''
     parser.add_argument(
-        '-m', '--model', type=str,
+        '-m', '--model_path', type=str,
         help='path to model weight file'
     )
 
     parser.add_argument(
-        '-a', '--anchors', type=str,
+        '-a', '--anchors_path', type=str,
         help='path to anchor definitions'
     )
 
     parser.add_argument(
-        "-c", '--classes', type=str,
+        "-c", '--classes_path', type=str,
         help='path to class definitions'
     )
 
@@ -126,11 +132,11 @@ if __name__ == '__main__':
 
     elif FLAGS.network == "mrcnn":
         from mask_rcnn import MaskRCNN
-        model = MaskRCNN(FLAGS.model, FLAGS.classes)
+        model = MaskRCNN(FLAGS.model_path, FLAGS.classes_path)
 
     elif FLAGS.network == "keras-centernet":
         from centernet import CENTERNET
-        model = CENTERNET(FLAGS.model, FLAGS.classes)
+        model = CENTERNET(FLAGS.model_path, FLAGS.classes_path)
 
     else:
         parser.error("Unknown network")

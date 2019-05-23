@@ -21,8 +21,8 @@ from keras.utils import multi_gpu_model
 class YOLO(object):
     _defaults = {
         "model_path": 'model_data/yolo3/coco/yolo.h5',
-        "anchors_path": 'model_data/yolo3/coco/yolo_anchors.txt',
-        "classes_path": 'model_data/yolo3/coco/coco_classes.txt',
+        "anchors_path": 'model_data/yolo3/coco/anchors.txt',
+        "classes_path": 'model_data/yolo3/coco/classes.txt',
         "score" : 0.3,
         "iou" : 0.45,
         "model_image_size" : (416, 416),
@@ -38,7 +38,7 @@ class YOLO(object):
 
     def __init__(self, **kwargs):
         self.__dict__.update(self._defaults) # set up default values
-        self.__dict__.update(kwargs) # and update with user overrides
+        self.__dict__.update(kwargs) 
         self.class_names = self._get_class()
         self.anchors = self._get_anchors()
         self.sess = K.get_session()

@@ -74,7 +74,7 @@ mscoco2017/train2017/000000558840.jpg [[[239,260,222,270,199,253,213,227,259,200
 ## Train Model
 
 ```
-python3 scripts/data_split.py -a=train.txt -n=10 -c=model_data/yolo3/coco/coco_classes.txt
+python3 scripts/data_split.py -a=data_labels/bbox/coco/train.txt -n=10 -c=model_data/yolo3/coco/classes.txt
 python3 train_yolo.py -m=model_data/yolo3/coco/yolo.h5 -t=train.txt -c=model_data/yolo3/coco/coco_classes.txt
 
 python3 train_mrcnn.py train -a=data_labels/polygon/coco/train_list_100.txt  -w=model_data/mrcnn/coco/mask_rcnn_coco.h5
@@ -83,6 +83,6 @@ python3 train_mrcnn.py train -a=data_labels/polygon/coco/train_list_100.txt  -w=
 ## Evaluate Model
 
 ```
-python3 test_image.py -t=_000/test.txt
-python3 scripts/compute_mAP_IoU.py results/yolo.h5_001/ _001/ground-truth/
+python3 test_image.py -t=data_labels/bbox/coco_000/test.txt  --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt -m=model_data/yolo3/coco/yolo.h5
+python3 scripts/compute_mAP_IoU.py results/yolo/coco_000/yolo.h5_000/ data_labels/bbox/coco_000/ground-truth/
 ```
