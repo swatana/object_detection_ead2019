@@ -31,15 +31,15 @@ wget https://github.com/see--/keras-centernet/releases/download/0.1.0/ctdet_coco
 ## Run
 
 ```
-python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt
-python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt --image
+python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt
+python3 test_video.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt --image
 Input image filename:images/pics/dog.jpg
 ```
 
 ## Run glob pattern
 
 ```
-python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/yolo_anchors.txt --classes=model_data/yolo3/coco/coco_classes.txt -i=images/pics/*jpg
+python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt -i=images/pics/*jpg
 
 python3 test_image.py --model=model_data/mrcnn/coco/mask_rcnn_coco.h5 --classes=model_data/mrcnn/coco/classes.txt -i=images/pics/eagle.jpg -n=mrcnn
 
@@ -75,7 +75,7 @@ mscoco2017/train2017/000000558840.jpg [[[239,260,222,270,199,253,213,227,259,200
 
 ```
 python3 scripts/data_split.py -a=data_labels/bbox/coco/train.txt -n=10 -c=model_data/yolo3/coco/classes.txt
-python3 train_yolo.py -m=model_data/yolo3/coco/yolo.h5 -t=train.txt -c=model_data/yolo3/coco/coco_classes.txt
+python3 train_yolo.py -m=model_data/yolo3/coco/yolo.h5 -t=data_labels/bbox/coco/train.txt -c=model_data/yolo3/coco/classes.txt
 
 python3 train_mrcnn.py train -a=data_labels/polygon/coco/train_list_100.txt  -w=model_data/mrcnn/coco/mask_rcnn_coco.h5
 ```
