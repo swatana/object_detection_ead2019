@@ -43,6 +43,7 @@ class YOLO(object):
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
+        self.feature_tensor_add_11 = self.yolo_model.layers[-159].output
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -116,8 +117,8 @@ class YOLO(object):
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
-        out_boxes, out_scores, out_classes = self.sess.run(
-            [self.boxes, self.scores, self.classes],
+        out_boxes, out_scores, out_classes, feature = self.sess.run(
+            [self.boxes, self.scores, self.classes, self.feature_tensor_add_11],
             feed_dict={
                 self.yolo_model.input: image_data,
                 self.input_image_shape: [image.size[1], image.size[0]],
@@ -134,7 +135,7 @@ class YOLO(object):
                 "score": np.asscalar(score),
                 "class": predicted_class,
             })
-
+        print(feature)
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
