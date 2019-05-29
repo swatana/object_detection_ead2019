@@ -3,7 +3,7 @@ import os
 import re
 from PIL import Image
 
-def crop_annotation(annotation_path):
+def crop_annotation(annotation_path, num):
     root_dir = os.path.dirname(annotation_path)
     new_lines = []
 
@@ -12,7 +12,7 @@ def crop_annotation(annotation_path):
     with open(os.path.join(root_dir, "classes.txt")) as f:
         class_names = ["_".join(line.strip().split()) for line in f]
 
-    for annotation in annotations[:100]:
+    for annotation in annotations[:num]:
         cropped_image_dir = os.path.join(os.path.join(root_dir, "cropped_images"), os.path.splitext(os.path.basename(annotation[0]))[0])
         os.makedirs(cropped_image_dir, exist_ok=True)
         img = Image.open(annotation[0])
@@ -59,4 +59,8 @@ if __name__ == '__main__':
         '-a', '--annotation_path', type=str, default=None, required=True,
         help='path to annotation file'
     )
-    crop_annotation(ap.parse_args().annotation_path)
+    ap.add_argument(
+        '-n', '--num', type=int, default=100, required=True,
+        help='number of file to crop'
+    )
+    crop_annotation(ap.parse_args().annotation_path, ap.parse_args().num)
