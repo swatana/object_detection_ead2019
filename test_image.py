@@ -63,7 +63,7 @@ def make_r_image(image, objects, colors, alpha=0.3):
         thickness = (image.size[0] + image.size[1]) // 300
 
         for obj in reversed(objects):
-            top, left, bottom, right = obj['bbox']
+            left, top, right, bottom = obj['bbox']
             score = obj['score']
             class_name = obj['class_name']
             classs_id = obj['class_id']

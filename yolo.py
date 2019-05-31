@@ -118,7 +118,7 @@ class YOLO(object):
 
         for box, score, cls in zip(out_boxes, out_scores, out_classes):
             predicted_class = self.class_names[cls]
-            left, top, right, bottom = box.astype(int)
+            top, left, bottom, right = box.astype(int)
             # color = self.colors[cls]
             objects.append({
                 "bbox": [left, top, right, bottom],
