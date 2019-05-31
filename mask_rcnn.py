@@ -65,20 +65,26 @@ class MaskRCNN(object):
 
         objects = []
 
-        for box, score, cls in zip(boxes, scores, class_ids):
+        trspsd_masks = np.transpose(masks, (2, 0, 1))
+
+        for box, score, cls, mask in zip(boxes, scores, class_ids, trspsd_masks):
             predicted_class = self.class_names[cls]
             top, left, bottom, right = box.astype(int)
             objects.append({
                 "bbox": [left, top, right, bottom],
                 "score": np.asscalar(score),
-                "class": predicted_class,
+                "class_name": predicted_class,
+                "class_id": cls,
+                "mask": mask
             })
 
-        r_img, polygons = self.__draw_boxes(image, boxes, class_ids, masks, scores)
+        # r_img, polygons = self.__draw_boxes(image, boxes, class_ids, masks, scores)
 
-        result = (r_img, objects)
+        result = {
+            "objects": objects
+        }
 
-        return result[0] if len(result) == 1 else result
+        return result
 
     def __make_json_annotation(self, boxes, polygons, class_ids, scores):
         result = []
