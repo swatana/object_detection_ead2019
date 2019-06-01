@@ -69,13 +69,15 @@ filepath x1,y1,x2,y2,class_id x1,y1,x2,y2,class_id....
 python3 coco_json_to_mrcnn_txt.py
 less data_labels/polygon/coco/train_list.txt
 mscoco2017/train2017/000000558840.jpg [[[239,260,222,270,199,253,213,227,259,200,274,202,277,210,249,253,237,264,242,261,228,271]],53] [[[357,210,338,209,327,204,325,164,329,127,326,108,333,104,348,104,358,108,358,130]],40] [[[x1,y1,x2,y2,x3,y3,...][x1,y1,x2,y2,x3,y3,...][...]...],class_id]]....
+cd data_labels/polygon/coco/
+head train_list.txt -n 100 >  train_list_100.txt
 ```
 
 ## Train Model
 
 ```
 python3 scripts/data_split.py -a=data_labels/bbox/coco/train.txt -n=10 -c=model_data/yolo3/coco/classes.txt
-python3 train_yolo.py -m=model_data/yolo3/coco/yolo.h5 -t=data_labels/bbox/coco/train.txt -c=model_data/yolo3/coco/classes.txt
+python3 train_yolo.py -m=model_data/yolo3/coco/yolo.h5 -t=data_labels/bbox/coco_000/train.txt -c=model_data/yolo3/coco_000/classes.txt
 
 python3 train_mrcnn.py train -a=data_labels/polygon/coco/train_list_100.txt  -w=model_data/mrcnn/coco/mask_rcnn_coco.h5
 ```
