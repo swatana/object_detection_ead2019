@@ -127,7 +127,6 @@ class YOLO(object):
                 "class_id": cls,
                 # "color": color
             })
-        print(features[0])
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
         end = timer()
