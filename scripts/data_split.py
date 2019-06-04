@@ -3,7 +3,7 @@ import argparse
 from sklearn.model_selection import train_test_split
 from random import shuffle
 from collections import defaultdict
-from shutil import copy
+import shutil
 
 
 class NotFoundError(Exception):
@@ -62,6 +62,8 @@ def split_annotation(annotation_file, test_classes_path, lower_bound=None, test_
         annotation_list = [line for line in f]
 
     os.makedirs(output_dir, exist_ok=True)
+
+    shutil.copyfile(test_classes_path, os.path.join(output_dir, "classes.txt"))
 
     if lower_bound:
         objects_in_file = dict()

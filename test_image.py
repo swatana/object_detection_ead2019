@@ -2,20 +2,13 @@ import sys
 import argparse
 import glob
 import os
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+import colorsys
+import utils
 
-class NotFoundError(Exception):
-    pass
-
-def get_unused_dir_num(pdir, pref=None):
-    os.makedirs(pdir, exist_ok=True)
-    dir_list = os.listdir(pdir)
-    for i in range(1000):
-        search_dir_name = "" if pref is None else (
-            pref + "_" ) + '%03d' % i
-        if search_dir_name not in dir_list:
-            return os.path.join(pdir, search_dir_name)
-    raise NotFoundError('Error')
 
 def detect_img(model):
 
@@ -38,12 +31,21 @@ def detect_img(model):
         "results", FLAGS.network, os.path.basename(
             os.path.dirname(image_source)))
 
-    output_dir = get_unused_dir_num(pdir=pdir, pref=result_name)
+    output_dir = utils.get_unused_dir_num(pdir=pdir, pref=result_name)
     image_output_dir = os.path.join(output_dir, "images")
     os.makedirs(image_output_dir, exist_ok=True)
     prediction_output_dir = os.path.join(
         output_dir, "predictions")
     os.makedirs(prediction_output_dir, exist_ok=True)
+    feature_output_dir = os.path.join(output_dir, "feature")
+    os.makedirs(feature_output_dir, exist_ok=True)
+
+    # Generate colors for drawing bounding boxes.
+    class_num = 0
+    classes_path = os.path.expanduser(FLAGS.classes_path)
+    with open(classes_path) as f:
+        class_num = len(f.readlines())
+    colors = utils.generate_colors(class_num)
 
     for img_path in img_path_list:
         img_basename, _ = os.path.splitext(os.path.basename(img_path))
@@ -53,20 +55,36 @@ def detect_img(model):
             print('Open Error! Try again!')
             continue
         else:
-            r_image, objects = model.detect_image(image)
+            result = model.detect_image(image)
+            objects = result['objects']
+
+            # save result image with bounding box
+            r_image = utils.make_r_image(image, objects, colors)
             r_image.save(
                 os.path.join(
                     image_output_dir,
                     img_basename + ".jpg",
                 ))
 
+            # save feature map of middle layer
+            if 'feature' in result:
+                feature = result['feature']
+                utils.visualize_and_save(feature, os.path.join(feature_output_dir, img_basename + ".png"))
+                np.save(
+                    os.path.join(
+                        feature_output_dir,
+                        img_basename +
+                        ".npy"),
+                    feature)
+
+            # save prediction text
             with open(
                     os.path.join(
                         prediction_output_dir, img_basename + ".txt"
                     ),
                     "w") as f:
                 for obj in objects:
-                    class_name = obj["class"]
+                    class_name = obj["class_name"]
                     score = obj["score"]
                     x_min, y_min, x_max, y_max = obj["bbox"]
                     print(
@@ -127,7 +145,7 @@ if __name__ == '__main__':
     FLAGS = parser.parse_args()
 
     if FLAGS.network == "yolo":
-        from yolo import YOLO, detect_video
+        from yolo import YOLO
         model = YOLO(**vars(FLAGS))
 
     elif FLAGS.network == "mrcnn":
