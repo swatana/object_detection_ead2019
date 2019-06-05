@@ -23,6 +23,9 @@ ln -s keras-centernet/keras_centernet .
 wget https://pjreddie.com/media/files/yolov3.weights
 python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
 
+wget https://pjreddie.com/media/files/yolov3-openimages.weights
+python3 keras-yolo3/convert.py cfg/yolov3-openimages.cfg yolov3-openimages.weights model_data/yolo3/openimage/yolov3-openimages.h5
+
 wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5 -P model_data/mrcnn/coco/
 
 wget https://github.com/see--/keras-centernet/releases/download/0.1.0/ctdet_coco_hg.hdf5 -P model_data/keras-centernet/coco/
@@ -40,6 +43,8 @@ Input image filename:images/pics/dog.jpg
 
 ```
 python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt -i=images/pics/*jpg
+
+python3 test_image.py --model=model_data/yolo3/openimage/yolov3-openimages.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/openimage/classes.txt -i=images/pics/*jpg
 
 python3 test_image.py --model=model_data/mrcnn/coco/mask_rcnn_coco.h5 --classes=model_data/mrcnn/coco/classes.txt -i=images/pics/eagle.jpg -n=mrcnn
 
