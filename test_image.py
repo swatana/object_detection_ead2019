@@ -39,6 +39,8 @@ def detect_img(model):
     os.makedirs(prediction_output_dir, exist_ok=True)
     feature_output_dir = os.path.join(output_dir, "feature")
     os.makedirs(feature_output_dir, exist_ok=True)
+    crop_output_dir = os.path.join(output_dir, "crop")
+    os.makedirs(crop_output_dir, exist_ok=True)
 
     # Generate colors for drawing bounding boxes.
     class_num = 0
@@ -59,7 +61,7 @@ def detect_img(model):
             objects = result['objects']
 
             # save result image with bounding box
-            r_image = utils.make_r_image(image, objects, colors)
+            r_image = utils.make_r_image(image.copy(), objects, colors)
             r_image.save(
                 os.path.join(
                     image_output_dir,
@@ -97,6 +99,14 @@ def detect_img(model):
                         end="\n",
                         file=f
                     )
+
+            # save cropped image
+            for obj in objects:
+                class_name = obj["class_name"]
+                score = obj["score"]
+                image_base_name = class_name + "_" + "_".join([str(s) for s in obj["bbox"]])
+                img_crop = image.crop(obj["bbox"])
+                img_crop.save(os.path.join(crop_output_dir, image_base_name + ".png"))
 
     model.close_session()
 
