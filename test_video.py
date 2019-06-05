@@ -6,6 +6,7 @@ import numpy as np
 import test_image
 import colorsys
 import os
+from utils import generate_colors, make_r_image
  
 def detect_img(model):
 
@@ -13,15 +14,7 @@ def detect_img(model):
     classes_path = os.path.expanduser(FLAGS.classes_path)
     with open(classes_path) as f:
         class_num = len(f.readlines())
-    hsv_tuples = [(x / class_num, 1., 1.)
-                    for x in range(class_num)]
-    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(
-        map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
-            colors))
-    np.random.seed(10101)  # Fixed seed for consistent colors across runs.
-    np.random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
-    np.random.seed(None)  # Reset seed to default.
+    colors = generate_colors(class_num)
 
     while True:
         img = input('Input image filename:')
@@ -44,6 +37,10 @@ def detect_video(model, video_path, output_path=""):
     # Generate colors for drawing bounding boxes.
     class_num = 0
     classes_path = os.path.expanduser(FLAGS.classes_path)
+    with open(classes_path) as f:
+        class_num = len(f.readlines())
+    colors = generate_colors(class_num)
+
     with open(classes_path) as f:
         class_num = len(f.readlines())
     hsv_tuples = [(x / class_num, 1., 1.)
@@ -76,7 +73,7 @@ def detect_video(model, video_path, output_path=""):
         image = Image.fromarray(frame)
         result = model.detect_image(image)
         objects = result['objects']
-        r_image = test_image.make_r_image(image, objects, colors)
+        r_image = make_r_image(image, objects, colors)
         result = np.asarray(r_image)
         curr_time = timer()
         exec_time = curr_time - prev_time
