@@ -32,13 +32,17 @@ def detect_img(model):
             os.path.dirname(image_source)))
 
     output_dir = utils.get_unused_dir_num(pdir=pdir, pref=result_name)
+
     image_output_dir = os.path.join(output_dir, "images")
     os.makedirs(image_output_dir, exist_ok=True)
+
     prediction_output_dir = os.path.join(
         output_dir, "predictions")
     os.makedirs(prediction_output_dir, exist_ok=True)
+
     feature_output_dir = os.path.join(output_dir, "feature")
     os.makedirs(feature_output_dir, exist_ok=True)
+
     crop_output_dir = os.path.join(output_dir, "crop")
     os.makedirs(crop_output_dir, exist_ok=True)
 
@@ -49,6 +53,7 @@ def detect_img(model):
         class_num = len(f.readlines())
     colors = utils.generate_colors(class_num)
 
+    train = ""
     for img_path in img_path_list:
         img_basename, _ = os.path.splitext(os.path.basename(img_path))
         try:
@@ -79,35 +84,44 @@ def detect_img(model):
                         ".npy"),
                     feature)
 
-            # save prediction text
-            with open(
-                    os.path.join(
-                        prediction_output_dir, img_basename + ".txt"
-                    ),
-                    "w") as f:
-                for obj in objects:
-                    class_name = obj["class_name"]
-                    score = obj["score"]
-                    x_min, y_min, x_max, y_max = obj["bbox"]
-                    print(
-                        "{class_name}\t{score}\t{coordinates}".format(
-                            score=score,
-                            class_name=class_name,
-                            coordinates="{0}\t{1}\t{2}\t{3}".format(
-                                x_min, y_min, x_max, y_max),
-                        ),
-                        end="\n",
-                        file=f
-                    )
 
-            # save cropped image
+            train += img_path
+            prediction = ""
             for obj in objects:
+                # save cropped image
                 class_name = obj["class_name"]
                 score = obj["score"]
                 image_base_name = class_name + "_" + "_".join([str(s) for s in obj["bbox"]])
                 img_crop = image.crop(obj["bbox"])
                 img_crop.save(os.path.join(crop_output_dir, image_base_name + ".png"))
 
+                # train file
+                x_min, y_min, x_max, y_max = obj["bbox"]
+                coordinates = "{0},{1},{2},{3}".format(
+                    x_min, y_min, x_max, y_max)
+                train += " {coordinates},{class_id}".format(
+                        coordinates=coordinates,
+                        class_id=obj["class_id"],
+                    )
+
+                # prediction file
+                prediction += "{class_name}\t{score}\t{coordinates}\n".format(
+                            score=score,
+                            class_name=class_name,
+                            coordinates="{0}\t{1}\t{2}\t{3}".format(
+                                x_min, y_min, x_max, y_max),
+                        )
+            train += "\n"
+            # save prediction text for each image
+            with open(
+                    os.path.join(
+                        prediction_output_dir, img_basename + ".txt"
+                    ),
+                    "w") as f:
+                print(prediction, end="", file=f)
+    # save train text
+    with open(os.path.join(output_dir, "train.txt"),"w") as f:
+        print(train, end="", file=f)
     model.close_session()
 
 FLAGS = None
