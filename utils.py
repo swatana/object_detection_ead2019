@@ -6,6 +6,39 @@ import matplotlib.pyplot as plt
 import cv2
 import colorsys
 
+def take_contours(objects):
+    for obj in objects:
+        if 'mask' in obj:
+            mask = obj['mask']
+            # Take contours
+            contours, hierarchy = cv2.findContours(
+                mask.astype(np.uint8), cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE)
+
+            polygon = []
+            for cnt in contours:
+                ps=[]
+                if (len(cnt) <= 2):
+                    continue
+                for point in cnt:
+                    x, y = point[0]
+                    ps.append(int(x))
+                    ps.append(int(y))
+                polygon.append(ps)
+
+            all_points_x = [k for contour in contours for i in contour.tolist() if len(i) >= 1 for j in i for k in j[0::2]],
+            all_points_y = [k for contour in contours for i in contour.tolist() if len(i) >= 1 for j in i for k in j[1::2]],
+            obj.update({
+                "contours": contours,
+                "hierarchy": hierarchy,
+                "polygon": polygon,
+                "all_points_x": all_points_x,
+                "all_points_y": all_points_y
+            })
+
+    return objects
+
+
 def make_r_image(image, objects, colors, alpha=0.3):
     image = np.array(image)
     image = np.array(image[..., ::-1], dtype=np.float32)
@@ -20,26 +53,7 @@ def make_r_image(image, objects, colors, alpha=0.3):
         if 'mask' in obj:
             mask = obj['mask']
             image[mask] = (image[mask] * (1.0 - alpha) + np.array(color) * alpha)
-
-            # Draw mask boundaries
-            contours = cv2.findContours(
-                mask.astype(np.uint8), cv2.RETR_EXTERNAL,
-                cv2.CHAIN_APPROX_SIMPLE)[-2]
-
-            polygon = []
-            for cnt in contours:
-                ps=[]
-                if (len(cnt) <= 2):
-                    continue
-                for point in cnt:
-                    x, y = point[0]
-                    ps.append(int(x))
-                    ps.append(int(y))
-                polygon.append(ps)
-
-            polygons.append(polygon)
-
-        if contours:
+            contours = obj['contours']
             cv2.drawContours(image, contours, -1, color, 2)
 
         # Draw rectangular bounding box
