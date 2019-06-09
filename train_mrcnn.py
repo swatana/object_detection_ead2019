@@ -209,6 +209,7 @@ def train(model, annotations_path, test_run=False):
 
     # Training dataset.
     dataset_train = OwnDataset()
+    print(dataset_dir)
     dataset_train.load_own(dataset_dir, train_annotations)
     dataset_train.prepare()
 
@@ -312,12 +313,8 @@ if __name__ == '__main__':
     config.display()
 
     # Create model
-    if args.command == "train":
-        model = modellib.MaskRCNN(mode="training", config=config,
-                                  model_dir=args.logs)
-    else:
-        model = modellib.MaskRCNN(mode="inference", config=config,
-                                  model_dir=args.logs)
+    model = modellib.MaskRCNN(mode="training", config=config,
+                                model_dir=args.logs)
     # model = []
     # Select weights file to load
     if args.weights.lower() == "coco":
@@ -345,12 +342,4 @@ if __name__ == '__main__':
     else:
         model.load_weights(weights_path, by_name=True)
 
-    # Train or evaluate
-    if args.command == "train":
-        train(model, args.annotations, test_run=False)
-    elif args.command == "splash":
-        detect_and_color_splash(model, image_path=args.image,
-                                video_path=args.video)
-    else:
-        print("'{}' is not recognized. "
-              "Use 'train' or 'splash'".format(args.command))
+    train(model, args.annotations, test_run=False)

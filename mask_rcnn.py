@@ -70,11 +70,12 @@ class MaskRCNN(object):
         for box, score, cls, mask in zip(boxes, scores, class_ids, trspsd_masks):
             predicted_class = self.class_names[cls]
             top, left, bottom, right = box.astype(int)
+
             objects.append({
                 "bbox": [left, top, right, bottom],
-                "score": np.asscalar(score),
+                "score": float(score),
                 "class_name": predicted_class,
-                "class_id": cls,
+                "class_id": int(cls),
                 "mask": mask
             })
 
