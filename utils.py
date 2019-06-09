@@ -7,18 +7,18 @@ import cv2
 import colorsys
 
 def make_r_image(image, objects, colors, alpha=0.3):
-    if len(objects) and 'mask' in objects[0]:
-        image = np.array(image)
-        image = np.array(image[..., ::-1], dtype=np.float32)
-        polygons = []
-        for obj in objects:
-            x1, y1, x2, y2 = obj['bbox']
-            score = obj['score']
-            class_name = obj['class_name']
-            class_id = obj['class_id']
+    image = np.array(image)
+    image = np.array(image[..., ::-1], dtype=np.float32)
+    polygons = []
+    for obj in objects:
+        x1, y1, x2, y2 = obj['bbox']
+        score = obj['score']
+        class_name = obj['class_name']
+        class_id = obj['class_id']
+        color = colors[class_id]
+        contours = False
+        if 'mask' in obj:
             mask = obj['mask']
-            color = colors[class_id]
-
             image[mask] = (image[mask] * (1.0 - alpha) + np.array(color) * alpha)
 
             # Draw mask boundaries
@@ -27,7 +27,6 @@ def make_r_image(image, objects, colors, alpha=0.3):
                 cv2.CHAIN_APPROX_SIMPLE)[-2]
 
             polygon = []
-
             for cnt in contours:
                 ps=[]
                 if (len(cnt) <= 2):
@@ -40,55 +39,19 @@ def make_r_image(image, objects, colors, alpha=0.3):
 
             polygons.append(polygon)
 
+        if contours:
             cv2.drawContours(image, contours, -1, color, 2)
 
-            # Draw rectangular bounding box
-            cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
+        # Draw rectangular bounding box
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
 
-            # Label
-            cv2.putText(image, "%i %s %.2f" % (class_id, class_name, score),
-                        (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                        (255, 255, 255))
+        # Label
+        cv2.putText(image, "%i %s %.2f" % (class_id, class_name, score),
+                    (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                    (255, 255, 255))
 
-        image = image[..., ::-1]  # Convert back to PIL
-        return Image.fromarray(image.astype(np.uint8))
-    else:
-        font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
-                    size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
-        thickness = (image.size[0] + image.size[1]) // 300
-
-        for obj in reversed(objects):
-            left, top, right, bottom = obj['bbox']
-            score = obj['score']
-            class_name = obj['class_name']
-            classs_id = obj['class_id']
-            color = colors[classs_id]
-
-            label = '{} {:.2f}'.format(class_name, score)
-            draw = ImageDraw.Draw(image)
-
-            label_size = draw.textsize(label, font)
-            top = max(0, np.floor(top + 0.5).astype('int32'))
-            left = max(0, np.floor(left + 0.5).astype('int32'))
-            bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
-            right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-
-            if top - label_size[1] >= 0:
-                text_origin = np.array([left, top - label_size[1]])
-            else:
-                text_origin = np.array([left, top + 1])
-
-            # My kingdom for a good redistributable image drawing library.
-            for i in range(thickness):
-                draw.rectangle(
-                    [left + i, top + i, right - i, bottom - i],
-                    outline=color)
-            draw.rectangle(
-                [tuple(text_origin), tuple(text_origin + label_size)],
-                fill=color)
-            draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            del draw
-        return image
+    image = image[..., ::-1]  # Convert back to PIL
+    return Image.fromarray(image.astype(np.uint8))
 
 def deprocess_feature(x):
     """Deprocess feature x for visualization
