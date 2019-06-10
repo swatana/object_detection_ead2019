@@ -2,6 +2,15 @@
 
 ## How to Use
 
+## Set CUDA_VISIBLE_DEVICES
+CPU
+```
+export CUDA_DEVICE_ORDER=PCI_BUS_ID; export CUDA_VISIBLE_DEVICES=-1;
+```
+GPU
+```
+export CUDA_DEVICE_ORDER=PCI_BUS_ID; export CUDA_VISIBLE_DEVICES=0;
+```
 ## Prepare package
 [InstallCUDA](/InstallCUDA.md)
 ```
