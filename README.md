@@ -30,7 +30,7 @@ ln -s keras-centernet/keras_centernet .
 
 ```
 wget https://pjreddie.com/media/files/yolov3.weights
-python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
+python3 keras-yolo3/convert.py cfg/yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
 
 wget https://pjreddie.com/media/files/yolov3-openimages.weights
 python3 keras-yolo3/convert.py cfg/yolov3-openimages.cfg yolov3-openimages.weights model_data/yolo3/openimage/yolov3-openimages.h5
