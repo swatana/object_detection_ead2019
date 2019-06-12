@@ -2,6 +2,15 @@
 
 ## How to Use
 
+## Set CUDA_VISIBLE_DEVICES
+CPU
+```
+export CUDA_DEVICE_ORDER=PCI_BUS_ID; export CUDA_VISIBLE_DEVICES=-1;
+```
+GPU
+```
+export CUDA_DEVICE_ORDER=PCI_BUS_ID; export CUDA_VISIBLE_DEVICES=0;
+```
 ## Prepare package
 [InstallCUDA](/InstallCUDA.md)
 ```
@@ -21,7 +30,10 @@ ln -s keras-centernet/keras_centernet .
 
 ```
 wget https://pjreddie.com/media/files/yolov3.weights
-python3 keras-yolo3/convert.py yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
+python3 keras-yolo3/convert.py cfg/yolov3.cfg yolov3.weights model_data/yolo3/coco/yolo.h5
+
+wget https://pjreddie.com/media/files/yolov3-openimages.weights
+python3 keras-yolo3/convert.py cfg/yolov3-openimages.cfg yolov3-openimages.weights model_data/yolo3/openimage/yolov3-openimages.h5
 
 wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5 -P model_data/mrcnn/coco/
 
@@ -40,6 +52,8 @@ Input image filename:images/pics/dog.jpg
 
 ```
 python3 test_image.py --model=model_data/yolo3/coco/yolo.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt -i=images/pics/*jpg
+
+python3 test_image.py --model=model_data/yolo3/openimage/yolov3-openimages.h5 --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/openimage/classes.txt -i=images/pics/*jpg
 
 python3 test_image.py --model=model_data/mrcnn/coco/mask_rcnn_coco.h5 --classes=model_data/mrcnn/coco/classes.txt -i=images/pics/eagle.jpg -n=mrcnn
 
