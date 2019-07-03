@@ -4,7 +4,6 @@ import os
 import numpy as np
 import sys
 import glob
-from utils import get_annotations
 
 """clone repository 'https://github.com/seqsense/Object-Detection-Metrics'"""
 

@@ -102,10 +102,10 @@ python3 train_mrcnn.py train -a=data_labels/polygon/coco/train_list_100.txt  -w=
 
 ```
 python3 test_image.py -t=data_labels/bbox/coco_000/test.txt  --anchors=model_data/yolo3/coco/anchors.txt --classes=model_data/yolo3/coco/classes.txt -m=model_data/yolo3/coco/yolo.h5
-python3 scripts/compute_mAP_IoU.py results/yolo/coco_000/yolo.h5_000/ data_labels/bbox/coco_000/ground-truth/
+python3 scripts/calculate_mAP_IoU.py -r results/yolo/coco_000/yolo.h5_000/ -g data_labels/bbox/coco_000/ground-truth/
 cat results/yolo/coco_000/yolo.h5_000/mAP_IOU/results.txt | grep _25
 
 python3 test_image.py -t=data_labels/bbox/coco_000/test.txt --model=model_data/keras-centernet/coco/ctdet_coco_hg.hdf5 --classes=model_data/keras-centernet/coco/classes.txt -n=keras-centernet
-python3 scripts/compute_mAP_IoU.py results/keras-centernet/coco_000/ctdet_coco_hg.hdf5_001/ data_labels/bbox/coco_000/ground-truth/
+python3 scripts/calculate_mAP_IoU.py -r results/keras-centernet/coco_000/ctdet_coco_hg.hdf5_001/ -g  data_labels/bbox/coco_000/ground-truth/
 cat results/keras-centernet/coco_000/ctdet_coco_hg.hdf5_001//mAP_IOU/results.txt | grep _25
 ```
