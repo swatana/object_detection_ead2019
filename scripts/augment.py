@@ -170,8 +170,8 @@ def rotate_image(angle, image):
 
     h, w, _ = image.shape
     t = np.radians(angle)
-    h_ = abs(h * np.cos(t) + w * np.sin(t))  # rotate image size
-    w_ = abs(w * np.cos(t) + h * np.sin(t))
+    h_ = abs(h * np.cos(t)) + abs(w * np.sin(t))  # rotate image size
+    w_ = abs(w * np.cos(t)) + abs(h * np.sin(t))
 
     image_top = image[:1, :, :]
     image_top = cv2.resize(image_top, (w, w))
@@ -351,6 +351,9 @@ def rotate(annotations_path,
     else:
         suf = "_t"
         bbox_transform_function_factory = random_bbox_transform if object_type == 'bbox' else random_polygon_transform
+    
+    if trans_color is not False:
+        suf = suf + "_c"
 
     classes_path = os.path.join(basedir, "classes.txt")
     new_annotations_path = suf.join(os.path.splitext(annotations_path))
