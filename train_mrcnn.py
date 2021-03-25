@@ -180,6 +180,12 @@ class OwnDataset(utils.Dataset):
                         dtype=np.uint8)
         for i, areas in enumerate(info["polygons"]):
             for (xs, ys) in zip(areas['all_points_x'], areas['all_points_y']):
+                for i, x in enumerate(xs):
+                    if xs[i] >= info["width"]:
+                        xs[i] = info["width"] - 1
+                for i, y in enumerate(xs):
+                    if ys[i] >= info["height"]:
+                        ys[i] = info["height"] - 1
                 # Get indexes of pixels inside the polygon and set them to 1
                 rr, cc = skimage.draw.polygon(ys, xs)
                 mask[rr, cc, i] ^= 1
@@ -333,13 +339,16 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", weights_path)
-    if args.weights.lower() == "coco":
-        # Exclude the last layers because they require a matching
-        # number of classes
-        model.load_weights(weights_path, by_name=True, exclude=[
-            "mrcnn_class_logits", "mrcnn_bbox_fc",
-            "mrcnn_bbox", "mrcnn_mask"])
-    else:
-        model.load_weights(weights_path, by_name=True)
+    model.load_weights(weights_path, by_name=True, exclude=[
+        "mrcnn_class_logits", "mrcnn_bbox_fc",
+        "mrcnn_bbox", "mrcnn_mask"])
+    # if args.weights.lower() == "coco":
+    #     # Exclude the last layers because they require a matching
+    #     # number of classes
+    #     model.load_weights(weights_path, by_name=True, exclude=[
+    #         "mrcnn_class_logits", "mrcnn_bbox_fc",
+    #         "mrcnn_bbox", "mrcnn_mask"])
+    # else:
+    #     model.load_weights(weights_path, by_name=True)
 
     train(model, args.annotations, test_run=False)

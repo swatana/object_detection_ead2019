@@ -86,7 +86,7 @@ python3 scripts/coco_json_to_mrcnn_txt.py
 less data_labels/polygon/coco/train_list.txt
 mscoco2017/train2017/000000558840.jpg [[[239,260,222,270,199,253,213,227,259,200,274,202,277,210,249,253,237,264,242,261,228,271]],53] [[[357,210,338,209,327,204,325,164,329,127,326,108,333,104,348,104,358,108,358,130]],40] [[[x1,y1,x2,y2,x3,y3,...][x1,y1,x2,y2,x3,y3,...][...]...],class_id]]....
 cd data_labels/polygon/coco/
-head train_list.txt -n 100 >  train_list_100.txt
+head -n 100 train_list.txt >  train_list_100.txt
 ```
 
 ## Train Model
