@@ -3,8 +3,8 @@ import cv2
 import glob
 import json
 
-fdir = 'argus.orig/'
-tdir = 'argus.100/'
+fdir = 'argus'
+tdir = 'argus100'
 
 files = glob.glob(fdir+"/*.json")
 files.sort()
@@ -13,7 +13,7 @@ files.sort()
 print(files)
 num = 10
 for f in files:
-    t = f.replace("argus.orig", "argus100")
+    t = f.replace(fdir, tdir)
     
     with open(f) as json_file:
         data = json.load(json_file)
@@ -45,7 +45,7 @@ for f in files:
     # break
 
 
-files = glob.glob("argusall/*.jpg")
+files = glob.glob(fdir+"/*.jpg")
 files.sort()
 
 # print(files)
@@ -54,7 +54,7 @@ for f in files:
     
     img_name=f
 
-    res_name = img_name.replace("argusall", "argusall100")
+    res_name = img_name.replace(fdir, tdir)
     print(res_name)
 
     img = cv2.imread(img_name)
