@@ -6,6 +6,7 @@ import shutil
 from PIL import Image, ImageFont, ImageDraw
 import numpy as np
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
 import cv2
 import colorsys
 import utils
@@ -147,9 +148,9 @@ def detect_img(model):
                 if "all_points_x" in obj:
                     json_img_objs["all_points_x"] = obj["all_points_x"]
                     json_img_objs["all_points_y"] = obj["all_points_y"]
-                if "contours" in obj:
-                    json_img_objs["contours"] = [contour.tolist() for contour in obj["contours"]]
-                    json_img_objs["hierarchy"] = [hierarchy.tolist() for hierarchy in obj["hierarchy"]]
+                # if "contours" in obj:
+                #     json_img_objs["contours"] = [contour.tolist() for contour in obj["contours"]]
+                #     json_img_objs["hierarchy"] = [hierarchy.tolist() for hierarchy in obj["hierarchy"]]
                 json_img_objs_list.append(json_img_objs)
 
                 # prediction file
@@ -183,6 +184,69 @@ def detect_img(model):
 
     with open(os.path.join(output_dir, "train_json.txt"),"w") as f:
         print(train_json, end="", file=f)
+    model.close_session()
+
+def detect_video(model, video_path, output_path=""):
+    import cv2
+
+    # Generate colors for drawing bounding boxes.
+    class_num = 0
+    classes_path = os.path.expanduser(FLAGS.classes_path)
+    with open(classes_path) as f:
+        class_num = len(f.readlines())
+    colors = utils.generate_colors(class_num)
+
+    with open(classes_path) as f:
+        class_num = len(f.readlines())
+    hsv_tuples = [(x / class_num, 1., 1.)
+                    for x in range(class_num)]
+    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
+    colors = list(
+        map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
+            colors))
+    np.random.seed(10101)  # Fixed seed for consistent colors across runs.
+    np.random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
+    np.random.seed(None)  # Reset seed to default.
+
+    vid = cv2.VideoCapture(video_path)
+    if not vid.isOpened():
+        raise IOError("Couldn't open webcam or video")
+    video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
+    video_fps       = vid.get(cv2.CAP_PROP_FPS)
+    video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                        int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    isOutput = True if output_path != "" else False
+    if isOutput:
+        print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
+        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
+    accum_time = 0
+    curr_fps = 0
+    fps = "FPS: ??"
+    prev_time = timer()
+    while True:
+        return_value, frame = vid.read()
+        image = Image.fromarray(frame)
+        result = model.detect_image(image)
+        objects = result['objects']
+        r_image = utils.make_r_image(image, objects, colors)
+        result = np.asarray(r_image)
+        curr_time = timer()
+        exec_time = curr_time - prev_time
+        prev_time = curr_time
+        accum_time = accum_time + exec_time
+        curr_fps = curr_fps + 1
+        if accum_time > 1:
+            accum_time = accum_time - 1
+            fps = "FPS: " + str(curr_fps)
+            curr_fps = 0
+        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.50, color=(255, 0, 0), thickness=2)
+        cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+        cv2.imshow("result", result)
+        if isOutput:
+            out.write(result)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
     model.close_session()
 
 FLAGS = None
@@ -227,6 +291,16 @@ if __name__ == '__main__':
         default='yolo',
         help='Network structure')
 
+    parser.add_argument(
+        "--input", nargs='?', type=str,required=False,default=0,
+        help = "Video input path"
+    )
+
+    parser.add_argument(
+        "--output", nargs='?', type=str, default="",
+        help = "[Optional] Video output path"
+    )
+
     FLAGS = parser.parse_args()
 
     if FLAGS.network == "yolo":
@@ -243,5 +317,6 @@ if __name__ == '__main__':
 
     else:
         parser.error("Unknown network")
-    detect_img(model)
 
+    detect_img(model)
+    # detect_video(model, FLAGS.input, FLAGS.output)  

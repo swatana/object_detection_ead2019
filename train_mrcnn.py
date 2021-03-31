@@ -178,7 +178,7 @@ class OwnDataset(utils.Dataset):
         info = self.image_info[image_id]
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
                         dtype=np.uint8)
-        for i, areas in enumerate(info["polygons"]):
+        for j, areas in enumerate(info["polygons"]):
             for (xs, ys) in zip(areas['all_points_x'], areas['all_points_y']):
                 for i, x in enumerate(xs):
                     if xs[i] >= info["width"]:
@@ -188,7 +188,7 @@ class OwnDataset(utils.Dataset):
                         ys[i] = info["height"] - 1
                 # Get indexes of pixels inside the polygon and set them to 1
                 rr, cc = skimage.draw.polygon(ys, xs)
-                mask[rr, cc, i] ^= 1
+                mask[rr, cc, j] ^= 1
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
@@ -249,7 +249,7 @@ def train(model, annotations_path, test_run=False):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=1,
+                epochs=10,
                 layers=config.LAYERS,
                 augmentation=False)
 
