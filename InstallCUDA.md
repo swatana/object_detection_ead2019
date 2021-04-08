@@ -21,8 +21,8 @@ export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
 ```
 wget https://developer.nvidia.com/compute/machine-learning/cudnn/secure/v7.5.1/prod/10.0_20190418/Ubuntu18_04-x64/libcudnn7_7.5.1.10-1%2Bcuda10.0_amd64.deb
 wget https://developer.nvidia.com/compute/machine-learning/cudnn/secure/v7.5.1/prod/10.0_20190418/Ubuntu18_04-x64/libcudnn7-dev_7.5.1.10-1%2Bcuda10.0_amd64.deb
-sudo  dpkg -i Downloads/libcudnn7_7.5.1.10-1+cuda10.0_amd64.deb
-sudo  dpkg -i libcudnn7-dev_7.5.1.10-1+cuda10.0_amd64.deb
+sudo  dpkg -i libcudnn8_8.1.1.33-1+cuda10.2_amd64_1804.deb
+sudo  dpkg -i libcudnn8-dev_8.1.1.33-1+cuda10.2_amd64_1804.deb
 ```
 
 ubuntu 16.04
