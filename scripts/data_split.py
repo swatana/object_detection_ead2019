@@ -1,10 +1,10 @@
 import os
 import argparse
 from sklearn.model_selection import train_test_split
-from random import shuffle
+from random import shuffle, seed
 from collections import defaultdict
 import shutil
-
+import sys
 
 class NotFoundError(Exception):
     pass
@@ -26,7 +26,8 @@ def select_sample(items, lower_bound, test_ratio):
     print(len(items))
     train_items = []
     test_items = []
-
+    
+    seed(42)
     shuffle(items)
     class_counts = defaultdict(int)
     for filename, class_ids in items:
@@ -42,103 +43,120 @@ def select_sample(items, lower_bound, test_ratio):
 
     idx = 0
     if test_ratio:
-        while idx < len(train_items) and len(test_items) >= test_ratio * len(items):
+        while idx < len(train_items) and len(test_items) <= test_ratio * len(items):
             test_items.append(train_items[idx])
             idx += 1
 
     return train_items[idx:], test_items
 
 
-def split_annotation(annotation_file, test_classes_path, lower_bound=None, test_ratio=0.2): # "data_labels/coco_fire"
-    annotation_dir = os.path.dirname(annotation_file)
+def split_annotation(annotation_file_path, annotation_file_format, classes_file_path, lower_bound=None, test_ratio=0.2): # "data_labels/coco_fire"
+    annotation_dir = os.path.dirname(annotation_file_path)
     dataset_name = os.path.basename(annotation_dir)
     upper_annnotation_dir = os.path.dirname(annotation_dir)
     if upper_annnotation_dir == '':
         upper_annnotation_dir = '.'
     output_dir = get_unused_dir_num(upper_annnotation_dir, dataset_name)
-    with open(test_classes_path) as fp:
-        test_classes = [line.strip() for line in fp]
-    with open(annotation_file) as f:
-        annotation_list = [line for line in f]
+    with open(classes_file_path) as f:
+        class_list = [line.strip() for line in f]
+    with open(annotation_file_path) as f:
+        annotation_lines = [line.strip() for line in f]
 
     os.makedirs(output_dir, exist_ok=True)
 
-    shutil.copyfile(test_classes_path, os.path.join(output_dir, "classes.txt"))
+    shutil.copyfile(classes_file_path, os.path.join(output_dir, "classes.txt"))
 
     if lower_bound:
-        objects_in_file = dict()
-        all_string = dict()
+        image_file_path_2_annotation_line = dict()
         train_items = []
-        for item in annotation_list:
-            filename, *objects = item.split()
-            all_string[filename] = item
-            objects_in_file[filename] = objects
-            class_ids = [int(obj.split(',')[-1]) for obj in objects]
-            train_items.append((filename, class_ids))
+        for item in annotation_lines:
+            image_file_path, *objects = item.split()
+            image_file_path_2_annotation_line[image_file_path] = item
+            class_ids = [int(obj.split(',')[-1].strip(']')) for obj in objects]
+            train_items.append((image_file_path, class_ids))
 
-        train_img_path, test_img_path = select_sample(train_items, lower_bound, test_ratio)
+        train_image_file_path_list, test_image_file_path_list = select_sample(train_items, lower_bound, test_ratio)
 
-        make_annotation = lambda filename : all_string[filename]
-        train_annotations = list(map(make_annotation, train_img_path))
-        test_annotations = list(map(make_annotation, test_img_path))
+        train_annotation_lines = [image_file_path_2_annotation_line[train_image_file_path] for train_image_file_path in train_image_file_path_list]
+        test_annotation_lines = [image_file_path_2_annotation_line[test_image_file_path] for test_image_file_path in test_image_file_path_list]
+    elif test_ratio == 0:
+        train_annotation_lines = annotation_lines
+        test_annotation_lines = []
+    elif test_ratio == 1:
+        train_annotation_lines = []
+        test_annotation_lines = annotation_lines
     else:
-        train_annotations, test_annotations = train_test_split(
-            annotation_list, test_size=test_ratio, random_state=42)
+        train_annotation_lines, test_annotation_lines = train_test_split(
+            annotation_lines, test_size=test_ratio, random_state=42)
 
-    print("{num_train} train annotations and {num_test} test annotations".format(num_test=len(test_annotations), num_train=len(train_annotations)))
+    print(f"{len(train_annotation_lines)} train annotations and {len(test_annotation_lines)} test annotations")
     with open(os.path.join(output_dir, "train.txt"), "w") as f:
-        for line in train_annotations:
-            print(line, end="", file=f)
+        train_annotation_output = "\n".join(train_annotation_lines)
+        f.write(train_annotation_output)
 
     with open(os.path.join(output_dir, "test.txt"), "w") as f:
-        for line in test_annotations:
-            print(line, end="", file=f)
+        test_annotation_output = "\n".join(test_annotation_lines)
+        f.write(test_annotation_output)
 
-            gt_output_dir = os.path.join(output_dir, "ground-truth")
-            os.makedirs(gt_output_dir, exist_ok=True)
+    print(f"Saved train.txt and test.txt in {output_dir}")
+    if annotation_file_format != 'bbox':
+        return
 
-            line = line.split()
-            img_path = line[0]
-            bbox = line[1:]
+    ground_truth_output_dir = os.path.join(output_dir, "ground-truth")
+    os.makedirs(ground_truth_output_dir, exist_ok=True)
 
-            img_basename = os.path.basename(img_path)
-            img_basename, _ = os.path.splitext(img_basename)
+    for test_annotation_line in test_annotation_lines:
+        test_annotation_line_objects = test_annotation_line.split()
+        image_file_path = test_annotation_line_objects[0]
+        bboxes = test_annotation_line_objects[1:]
 
-            with open(os.path.join(gt_output_dir, img_basename + ".txt"), "w") as fg:
-                # pprint(gt_list)
-                for b in bbox:
-                    obj = b.split(",")
-                    x_min = obj[0]
-                    y_min = obj[1]
-                    x_max = obj[2]
-                    y_max = obj[3]
-                    class_id = int(obj[4])
-                    print(class_id)
-                    print(test_classes[class_id])
-                    print(
-                        "{class_name}\t{coordinates}".format(
-                            class_name=test_classes[class_id],
-                            coordinates="{0}\t{1}\t{2}\t{3}".format(
-                                x_min, y_min, x_max, y_max),
-                        ),
-                        end="\n",
-                        file=fg
-                    )
+        image_file_basename = os.path.basename(image_file_path)
+        image_file_basename_without_ext, _ = os.path.splitext(image_file_basename)
 
-    print("Saved train.txt and test.txt in {}".format(output_dir))
-    return output_dir
+        ground_truth_file_output_lines = []
+        for bbox in bboxes:
+            bbox_objects = bbox.split(",")
+            x_min = bbox_objects[0]
+            y_min = bbox_objects[1]
+            x_max = bbox_objects[2]
+            y_max = bbox_objects[3]
+            class_id = int(bbox_objects[4])
+            class_name = class_list[class_id]
+            print(class_id)
+            print(class_list[class_id])
 
+            ground_truth_file_output_lines.append(f"{class_name}\t{x_min}\t{y_min}\t{x_max}\t{y_max}")
+
+        with open(os.path.join(ground_truth_output_dir, image_file_basename_without_ext + ".txt"), "w") as f:
+            ground_truth_file_output = "\n".join(ground_truth_file_output_lines)
+            f.write(ground_truth_file_output)
+
+    print(f"Saved ground truth files in {ground_truth_output_dir}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-a', '--annotation_file', type=str, default=None, required=True,
+        '-a', '--annotation_file_path', type=str, default=None, required=True,
         help='path to annotation file'
     )
-    
+
     parser.add_argument(
-        '-c', '--classes', type=str,
-        help='path to class definitions'
+        '-af',
+        '--annotation_file_format',
+        type=str,
+        choices=[
+            'bbox',
+            'polygon',
+            'tif',
+        ],
+        help='Annotation file format.',
+        required=True,
+    )
+
+    parser.add_argument(
+        '-c', '--classes_file_path', type=str,
+        help='path to class definitions',
+        required=True,
     )
 
     parser.add_argument(
@@ -149,10 +167,13 @@ if __name__ == '__main__':
     parser.add_argument(
         "-n",
         "--lower_bound",
-        help="The least number of apperance of each class",
+        help="The least number of apperance of each class. Available except tif.",
         type=int
     )
 
     args = vars(parser.parse_args())
 
-    split_annotation(annotation_file=args["annotation_file"], test_classes_path=args["classes"], lower_bound=args["lower_bound"], test_ratio=args["test_ratio"])
+    if(args["annotation_file_format"] == "tif" and args["lower_bound"] is not None):
+        sys.exit("You cannot specify lowerbound when the annotation file format is tif.")
+
+    split_annotation(annotation_file_path=args["annotation_file_path"], annotation_file_format=args['annotation_file_format'], classes_file_path=args["classes_file_path"], lower_bound=args["lower_bound"], test_ratio=args["test_ratio"])

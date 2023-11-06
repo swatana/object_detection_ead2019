@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_NAME=object_detection
+IMAGE_NAME=torchvision12.1.0
 
 xhost +
 
@@ -8,11 +8,11 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 
 docker run -it --rm \
   --privileged \
-  --runtime=nvidia \
+  --gpus all \
   --env=QT_X11_NO_MITSHM=1 \
   --env="DISPLAY" \
   --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
   --volume="$HOME/.Xauthority:/root/.Xauthority:rw" \
   --net="host" \
-  --volume="$SCRIPT_DIR/../:/root/$IMAGE_NAME/" \
+  --volume="$SCRIPT_DIR/../:/root/object_detection_ead2019/" \
   $IMAGE_NAME

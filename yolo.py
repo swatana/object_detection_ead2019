@@ -44,6 +44,8 @@ class YOLO(object):
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
         self.feature_tensor_add_11 = self.yolo_model.layers[-159].output
+        # print(self.score)
+        # print(self.iou)
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -102,7 +104,7 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        # print(image_data.shape)
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 

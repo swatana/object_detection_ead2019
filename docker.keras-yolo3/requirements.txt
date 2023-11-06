@@ -1,0 +1,7 @@
+opencv-python
+scikit-learn
+scikit-image
+tensorflow-gpu==1.15.5
+keras==2.1.6
+protobuf==3.20.3
+imgaug

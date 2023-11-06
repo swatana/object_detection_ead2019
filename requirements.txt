@@ -1,6 +1,4 @@
 opencv-python
 scikit-learn
 scikit-image
-tensorflow-gpu
-keras
 imgaug

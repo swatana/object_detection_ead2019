@@ -26,17 +26,15 @@ Usage: import the module or run from
     python3 own.py splash -w=last -v=<URL or path to file>
 """
 
-from pprint import pprint
 import os
-import sys
+import itertools
 import json
-import datetime
 import numpy as np
 import shutil
 import skimage.draw
-import re
 from sklearn.model_selection import train_test_split
 import ast
+import tiffile
 
 # Import Mask RCNN
 from mrcnn.config import Config
@@ -115,7 +113,13 @@ def get_classes(classes_path):
 
 class OwnDataset(utils.Dataset):
 
-    def load_own(self, dataset_dir, annotations):
+    def load_own(self, dataset_dir, annotations, annotations_format):
+        if annotations_format == 'polygon':
+            self.load_own_polygon(dataset_dir, annotations)
+        elif annotations_format == 'tif':
+            self.load_own_tif(dataset_dir, annotations)
+
+    def load_own_polygon(self, dataset_dir, annotations):
         """Load a subset of your own dataset.
         dataset_dir: Root directory of the dataset.
         """
@@ -160,10 +164,41 @@ class OwnDataset(utils.Dataset):
                 image_id=annotation[0],  # use file name as a unique image id
                 path=image_path,
                 width=width, height=height,
+                annotations_format='polygon',
                 polygons=polygons,
                 local_class_ids=np.array(local_class_ids, dtype=np.int32)
             )
 
+    def load_own_tif(self, dataset_dir, annotations):
+        """Load a subset of your own dataset.
+        dataset_dir: Root directory of the dataset.
+        """
+        dataset_name = os.path.basename(dataset_dir)
+        class_name_list = get_classes(os.path.join(dataset_dir, "classes.txt"))
+
+        assert class_name_list[0] == "BG", "class.txt must contain BG in the first line"
+        for class_name in class_name_list[1:]:
+            self.add_class(dataset_name, len(self.class_info), class_name)
+
+        for annotation in annotations:
+            image_path, tif_file_path = annotation.split()
+            image_file_name = os.path.basename(image_path)
+            # load_mask() needs the image size to convert polygons to masks.
+            # Unfortunately, VIA doesn't include it in JSON, so we must read
+            # the image. This is only managable since the dataset is tiny.
+            image = skimage.io.imread(image_path)
+            height, width = image.shape[:2]
+            # print(mage_path, height, width)
+            self.add_image(
+                dataset_name,
+                image_id=image_file_name,  # use file name as a unique image id
+                path=image_path,
+                width=width,
+                height=height,
+                annotations_format='tif',
+                tif_file_path=tif_file_path,
+                class_name_list=class_name_list,
+            )
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -176,23 +211,46 @@ class OwnDataset(utils.Dataset):
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
         info = self.image_info[image_id]
+
+        if info['annotations_format'] == 'polygon':
+            return self.load_mask_polygon(info)
+        elif info['annotations_format'] == 'tif':
+            return self.load_mask_tif(info)
+
+    def load_mask_polygon(self, info):
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
-                        dtype=np.uint8)
-        for j, areas in enumerate(info["polygons"]):
+            dtype=np.uint8)
+        for i, areas in enumerate(info["polygons"]):
             for (xs, ys) in zip(areas['all_points_x'], areas['all_points_y']):
-                for i, x in enumerate(xs):
-                    if xs[i] >= info["width"]:
-                        xs[i] = info["width"] - 1
-                for i, y in enumerate(xs):
-                    if ys[i] >= info["height"]:
-                        ys[i] = info["height"] - 1
                 # Get indexes of pixels inside the polygon and set them to 1
                 rr, cc = skimage.draw.polygon(ys, xs)
-                mask[rr, cc, j] ^= 1
-
+                mask[rr, cc, i] ^= 1
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
         return mask.astype(np.bool), info["local_class_ids"]
+
+    def load_mask_tif(self, info):
+        height = info['height']
+        width = info['width']
+        class_name_list = info['class_name_list']
+        tif_file_path = info['tif_file_path']
+
+        output_mask = np.zeros([height, width, len(class_name_list)],
+            dtype=np.uint8)
+
+        input_mask_array = tiffile.imread(tif_file_path)
+
+        for i, input_mask in enumerate(input_mask_array):
+            class_id = i + 1 # BG passed
+            for y, x in itertools.product(range(height), range(width)):
+                if input_mask[y][x] == 0:
+                    continue
+                output_mask[y][x][class_id] = 1
+
+        # Return mask, and array of class IDs of each instance. Since we have
+        # one class ID only, we return an array of 1s
+        local_class_ids = np.array([_ for _ in range(len(class_name_list))], dtype=np.int32)
+        return output_mask.astype(np.bool), local_class_ids
 
     def image_reference(self, image_id):
         """Return the path of the image."""
@@ -201,7 +259,7 @@ class OwnDataset(utils.Dataset):
 
 
 
-def train(model, annotations_path, test_run=False):
+def train(model, annotations_path, annotations_format, test_run=False):
     """Train the model."""
     with open(annotations_path) as f:
         annotations = f.readlines()
@@ -216,12 +274,12 @@ def train(model, annotations_path, test_run=False):
     # Training dataset.
     dataset_train = OwnDataset()
     print(dataset_dir)
-    dataset_train.load_own(dataset_dir, train_annotations)
+    dataset_train.load_own(dataset_dir, train_annotations, annotations_format)
     dataset_train.prepare()
 
     # Validation dataset
     dataset_val = OwnDataset()
-    dataset_val.load_own(dataset_dir, val_annotatinons)
+    dataset_val.load_own(dataset_dir, val_annotatinons, annotations_format)
     dataset_val.prepare()
 
     # *** This training schedule is an example. Update to your needs ***
@@ -249,7 +307,7 @@ def train(model, annotations_path, test_run=False):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=10,
+                epochs=1,
                 layers=config.LAYERS,
                 augmentation=False)
 
@@ -274,6 +332,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--annotations', required=False,
                         metavar="/path/to/annotations.txt",
                         help='dataset')
+    parser.add_argument('-af', '--annotations_format', help='format of annotation file', required=True, choices=['polygon', 'tif'])
     parser.add_argument('-w', '--weights', required=False,
                         default='coco',
                         metavar="/path/to/weights.h5",
@@ -339,16 +398,13 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", weights_path)
-    model.load_weights(weights_path, by_name=True, exclude=[
-        "mrcnn_class_logits", "mrcnn_bbox_fc",
-        "mrcnn_bbox", "mrcnn_mask"])
-    # if args.weights.lower() == "coco":
-    #     # Exclude the last layers because they require a matching
-    #     # number of classes
-    #     model.load_weights(weights_path, by_name=True, exclude=[
-    #         "mrcnn_class_logits", "mrcnn_bbox_fc",
-    #         "mrcnn_bbox", "mrcnn_mask"])
-    # else:
-    #     model.load_weights(weights_path, by_name=True)
+    if args.weights.lower() == "coco":
+        # Exclude the last layers because they require a matching
+        # number of classes
+        model.load_weights(weights_path, by_name=True, exclude=[
+            "mrcnn_class_logits", "mrcnn_bbox_fc",
+            "mrcnn_bbox", "mrcnn_mask"])
+    else:
+        model.load_weights(weights_path, by_name=True)
 
-    train(model, args.annotations, test_run=False)
+    train(model, args.annotations, args.annotations_format, test_run=False)

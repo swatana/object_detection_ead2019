@@ -4,8 +4,9 @@ import os
 import numpy as np
 import sys
 import glob
+from lib.utils import *
 
-"""clone repository 'https://github.com/seqsense/Object-Detection-Metrics'"""
+"""clone repository 'https://github.com/soatcorp/Object-Detection-Metrics'"""
 
 from lib.BoundingBox import BoundingBox
 from lib.BoundingBoxes import BoundingBoxes
@@ -107,24 +108,6 @@ def get_bboxes_and_classes(ground_truth_dir_path, prediction_dir_path, score_thr
 
     for img_filename, prediction in predictions_dict.items():
 
-        # BBox of groundTruth
-        true_annotation = gt_dict[img_filename]
-        for obj in true_annotation:
-            bbox = obj["bbox"]
-            class_name = obj['class_name']
-            bb = BoundingBox(
-                img_filename,
-                class_name,
-                bbox[0],
-                bbox[1],
-                bbox[2],
-                bbox[3],
-                CoordinatesType.Absolute,
-                None,
-                BBType.GroundTruth,
-                format=BBFormat.XYX2Y2)
-            allBoundingBoxes.addBoundingBox(bb)
-
         # Non Maximum Suppression of predictions
         classes = []
         boxes = []
@@ -151,7 +134,76 @@ def get_bboxes_and_classes(ground_truth_dir_path, prediction_dir_path, score_thr
                 format=BBFormat.XYX2Y2)
             allBoundingBoxes.addBoundingBox(bb)
 
+
+        # BBox of groundTruth
+        true_annotation = gt_dict[img_filename]
+        for obj in true_annotation:
+            bbox = obj["bbox"]
+            class_name = obj['class_name']
+            bb = BoundingBox(
+                img_filename,
+                class_name,
+                bbox[0],
+                bbox[1],
+                bbox[2],
+                bbox[3],
+                CoordinatesType.Absolute,
+                None,
+                BBType.GroundTruth,
+                format=BBFormat.XYX2Y2)
+            allBoundingBoxes.addBoundingBox(bb)
+
     return allBoundingBoxes
+
+def save_nms_applied_images(all_bboxes, result_dir_path):
+    save_dir_path = os.path.join(result_dir_path, "nms_applied_images")
+    os.makedirs(save_dir_path, exist_ok = True)
+
+    classes_file_path = os.path.join(result_dir_path, "classes.txt")
+    with open(classes_file_path) as f:
+        class_names = [line.strip() for line in f]
+
+    test_file_path = os.path.join(result_dir_path, "test.txt")
+    with open(test_file_path) as f:
+        image_file_path_list = [line.strip().split()[0] for line in f]
+
+    for image_file_path in image_file_path_list:
+        image_file_name = os.path.basename(image_file_path)
+        image_file_name_witout_ext = os.path.splitext(image_file_name)[0]
+
+        image = cv2.imread(image_file_path)
+        bboxes = all_bboxes.getBoundingBoxesByImageName(image_file_name_witout_ext)
+
+        for bbox in bboxes:
+            x1, y1, x2, y2 = bbox.getAbsoluteBoundingBox(BBFormat.XYX2Y2)
+            class_id = bbox.getClassId()
+            confidence = str(bbox.getConfidence())
+            if confidence == "None":
+                confidence = "GT"
+            
+            x1 = int(x1)
+            y1 = int(y1)
+            x2 = int(x2)
+            y2 = int(y2)
+
+            cv2.rectangle(
+                image,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA,
+            )
+            cv2.putText(
+                image,
+                class_id + ": " + confidence,
+                (x1, y1),
+                cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2,
+                cv2.LINE_AA,
+            )
+
+        save_image_file_path = os.path.join(save_dir_path, image_file_name)
+        cv2.imwrite(save_image_file_path, image)
 
 
 def plot_graph(allBoundingBoxes, savePath, thresholds):
@@ -172,8 +224,12 @@ def plot_graph(allBoundingBoxes, savePath, thresholds):
         method=MethodAveragePrecision.EveryPointInterpolation,
         showAP=True,  # Show Average Precision in the title of the plot
         showInterpolatedPrecision=False,  # Don't plot the interpolated precision curve
-        savePath=os.path.join(savePath, "graphs"),
+        # savePath=os.path.join(savePath, "graphs"),
         showGraphic=False)
+    csv = []
+    from pprint import pprint 
+    
+    pprint(detections)
 
     with open(os.path.join(savePath, 'results.txt'), 'w') as f:
         f.write('Object Detection Metrics\n')
@@ -187,6 +243,8 @@ def plot_graph(allBoundingBoxes, savePath, thresholds):
             cl = metricsPerClass['class']
             ap = metricsPerClass['AP']
             iou = metricsPerClass['IoU']
+            if np.isnan(iou):
+                iou = 0
             precision = metricsPerClass['precision']
             recall = metricsPerClass['recall']
             totalPositives = metricsPerClass['total positives']
@@ -199,8 +257,10 @@ def plot_graph(allBoundingBoxes, savePath, thresholds):
                 rec = ['%.2f' % r for r in recall]
                 ap_str = "{0:.2f}%".format(ap * 100)
                 iou_str = "{0:.2f}%".format(iou * 100)
-                print('AP: %s (%s)' % (ap_str, cl))
-                print('IoU: %s (%s)' % (iou_str, cl))
+                # print('AP: %s (%s)' % (ap_str, cl))
+                # print('IoU: %s (%s)' % (iou_str, cl))
+                csv.append(ap_str)
+                csv.append(iou_str)
                 f.write('\n\nClass: %s' % cl)
                 f.write('\nAP: %s' % ap_str)
                 f.write('\nIoU: %s' % iou_str)
@@ -209,10 +269,12 @@ def plot_graph(allBoundingBoxes, savePath, thresholds):
 
         mAP = acc_AP / validClasses
         mAP_str = "{0:.2f}%".format(mAP * 100)
-        print('mAP: %s' % mAP_str)
         mIoU = acc_IoU / validClasses
         mIoU_str = "{0:.2f}%".format(mIoU * 100)
-        print('mIoU: %s' % mIoU_str)
+        # print('mAP: %s' % mAP_str)
+        # print('mIoU: %s' % mIoU_str)
+        csv.append(mAP_str)
+        csv.append(mIoU_str)
         f.write('\n\n# mAP of all classes\nmAP: %s\nmIoU: %s' % (mAP_str, mIoU_str))
 
 
@@ -234,10 +296,12 @@ def plot_graph(allBoundingBoxes, savePath, thresholds):
             total_TP = int(metricsPerClass['total TP'])
             total_FP = int(metricsPerClass['total FP'])
 
+            print('%s: %d (tp:%d, fp: %d, fn: %d)' % (cl, total_TP + total_FP, total_TP, total_FP, totalPositives - total_TP))
             if totalPositives > 0:
-                f.write('\n%s: %d (tp:%d, fp: %d)' % (cl, total_TP + total_FP, total_TP, total_FP))
+                f.write('\n%s: %d (tp:%d, fp: %d, fn: %d)' % (cl, total_TP + total_FP, total_TP, total_FP, totalPositives - total_TP))
 
-
+    with open(os.path.join(savePath, 'csv.txt'), 'w') as f:
+        f.write('\n'.join(csv))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -250,7 +314,7 @@ if __name__ == '__main__':
         help='path to the result directory path'
     )
     parser.add_argument(
-        '-th', '--score_threshold', type=float, default=0.01,
+        '-th', '--score_threshold', type=float, default=0.009,
         help='Score threshold'
     )
     parser.add_argument(
@@ -258,11 +322,11 @@ if __name__ == '__main__':
         help='Non maximum suppression threshold for Intersection over Union'
     )
     parser.add_argument(
-        '-ios', '--ios_threshold', type=float, default=1,
+        '-ios', '--ios_threshold', type=float, default=1.1,
         help='Non maximum suppression threshold for Intersection over Section'
     )
     args = vars(parser.parse_args())
-    
+
     bboxes = get_bboxes_and_classes(
                             ground_truth_dir_path=args["ground_truth_dir_path"],
                             prediction_dir_path=os.path.join(args["result_dir_path"], 'predictions'),
@@ -270,3 +334,4 @@ if __name__ == '__main__':
                             iou_threshold=args["iou_threshold"],
                             ios_threshold=args["ios_threshold"])
     plot_graph(bboxes, args["result_dir_path"], [args["score_threshold"], args["iou_threshold"], args["ios_threshold"]])
+    # save_nms_applied_images(bboxes, args["result_dir_path"])

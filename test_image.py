@@ -6,7 +6,6 @@ import shutil
 from PIL import Image, ImageFont, ImageDraw
 import numpy as np
 import matplotlib.pyplot as plt
-from timeit import default_timer as timer
 import cv2
 import colorsys
 import utils
@@ -38,10 +37,14 @@ def detect_img(model):
 
     image_glob = FLAGS.image_glob
     test_file = FLAGS.test_file
+    anno_file_dir = os.path.basename(os.path.dirname(test_file))
+    model_path = FLAGS.model_path
     print(image_glob)
     print(FLAGS.model_path)
-    result_name = os.path.basename(
-            os.path.dirname(FLAGS.model_path))
+    weight_file_name = os.path.splitext(os.path.basename(model_path))[0]
+    result_name = weight_file_name
+    # result_name = os.path.basename(
+    #         os.path.dirname(FLAGS.model_path))
 
     image_source = ""
     if image_glob:
@@ -56,24 +59,31 @@ def detect_img(model):
         "results", FLAGS.network, os.path.basename(
             os.path.dirname(image_source)))
 
-    output_dir = utils.get_unused_dir_num(pdir=pdir, pref=result_name)
+    results_dir = f'./results/{weight_file_name}/{anno_file_dir}/'
+    # output_dir = utils.get_unused_dir_num(pdir=pdir, pref=result_name)
 
-    image_output_dir = os.path.join(output_dir, "images")
+    image_output_dir = os.path.join(results_dir, "images")
     os.makedirs(image_output_dir, exist_ok=True)
 
     prediction_output_dir = os.path.join(
-        output_dir, "predictions")
+        results_dir, "predictions")
     os.makedirs(prediction_output_dir, exist_ok=True)
 
-    feature_output_dir = os.path.join(output_dir, "feature")
-    os.makedirs(feature_output_dir, exist_ok=True)
+    # feature_output_dir = os.path.join(output_dir, "feature")
+    # os.makedirs(feature_output_dir, exist_ok=True)
 
-    crop_output_dir = os.path.join(output_dir, "crop")
-    os.makedirs(crop_output_dir, exist_ok=True)
+    # crop_output_dir = os.path.join(output_dir, "crop")
+    # os.makedirs(crop_output_dir, exist_ok=True)
+
+    test_file_path = os.path.expanduser(FLAGS.test_file)
+    shutil.copy(os.path.abspath(test_file_path),
+             os.path.join(results_dir, "test.txt"))
 
     # Generate colors for drawing bounding boxes.
     class_num = 0
     classes_path = os.path.expanduser(FLAGS.classes_path)
+    shutil.copy(os.path.abspath(classes_path),
+             os.path.join(results_dir, "classes.txt"))
     with open(classes_path) as f:
         class_num = len(f.readlines())
     colors = utils.generate_colors(class_num)
@@ -94,23 +104,23 @@ def detect_img(model):
             objects = utils.take_contours(objects)
 
             # save result image with bounding box
-            r_image = utils.make_r_image(image.copy(), objects, colors)
-            r_image.save(
-                os.path.join(
-                    image_output_dir,
-                    img_basename + ".jpg",
-                ))
+            # r_image = utils.make_r_image(image.copy(), objects, colors)
+            # r_image.save(
+            #     os.path.join(
+            #         image_output_dir,
+            #         img_basename + ".jpg",
+            #     ))
 
             # save feature map of middle layer
-            if 'feature' in result:
-                feature = result['feature']
-                utils.visualize_and_save(feature, os.path.join(feature_output_dir, img_basename + ".png"))
-                np.save(
-                    os.path.join(
-                        feature_output_dir,
-                        img_basename +
-                        ".npy"),
-                    feature)
+            # if 'feature' in result:
+            #     feature = result['feature']
+            #     utils.visualize_and_save(feature, os.path.join(feature_output_dir, img_basename + ".png"))
+            #     np.save(
+            #         os.path.join(
+            #             feature_output_dir,
+            #             img_basename +
+            #             ".npy"),
+            #         feature)
 
 
             train_bbox += img_path
@@ -119,12 +129,12 @@ def detect_img(model):
             prediction = ""
             json_img_objs_list = []
             for obj in objects:
-                # save cropped image
                 class_name = obj["class_name"]
                 score = obj["score"]
-                image_base_name = class_name + "_" + "_".join([str(s) for s in obj["bbox"]])
-                img_crop = image.crop(obj["bbox"])
-                img_crop.save(os.path.join(crop_output_dir, image_base_name + ".png"))
+                # save cropped image
+                # image_base_name = class_name + "_" + "_".join([str(s) for s in obj["bbox"]])
+                # img_crop = image.crop(obj["bbox"])
+                # img_crop.save(os.path.join(crop_output_dir, image_base_name + ".png"))
 
                 # train_bbox file
                 x_min, y_min, x_max, y_max = obj["bbox"]
@@ -148,9 +158,9 @@ def detect_img(model):
                 if "all_points_x" in obj:
                     json_img_objs["all_points_x"] = obj["all_points_x"]
                     json_img_objs["all_points_y"] = obj["all_points_y"]
-                # if "contours" in obj:
-                #     json_img_objs["contours"] = [contour.tolist() for contour in obj["contours"]]
-                #     json_img_objs["hierarchy"] = [hierarchy.tolist() for hierarchy in obj["hierarchy"]]
+                if "contours" in obj:
+                    json_img_objs["contours"] = [contour.tolist() for contour in obj["contours"]]
+                    json_img_objs["hierarchy"] = [hierarchy.tolist() for hierarchy in obj["hierarchy"]]
                 json_img_objs_list.append(json_img_objs)
 
                 # prediction file
@@ -174,79 +184,16 @@ def detect_img(model):
                 print(prediction, end="", file=f)
 
     shutil.copy(os.path.abspath(classes_path),
-                os.path.join(output_dir, "classes.txt"))
+                os.path.join(results_dir, "classes.txt"))
     # save train_bbox text
-    with open(os.path.join(output_dir, "train_bbox.txt"),"w") as f:
+    with open(os.path.join(results_dir, "train_bbox.txt"),"w") as f:
         print(train_bbox, end="", file=f)
     # save train_polygon text
-    with open(os.path.join(output_dir, "train_polygon.txt"),"w") as f:
+    with open(os.path.join(results_dir, "train_polygon.txt"),"w") as f:
         print(train_polygon, end="", file=f)
 
-    with open(os.path.join(output_dir, "train_json.txt"),"w") as f:
+    with open(os.path.join(results_dir, "train_json.txt"),"w") as f:
         print(train_json, end="", file=f)
-    model.close_session()
-
-def detect_video(model, video_path, output_path=""):
-    import cv2
-
-    # Generate colors for drawing bounding boxes.
-    class_num = 0
-    classes_path = os.path.expanduser(FLAGS.classes_path)
-    with open(classes_path) as f:
-        class_num = len(f.readlines())
-    colors = utils.generate_colors(class_num)
-
-    with open(classes_path) as f:
-        class_num = len(f.readlines())
-    hsv_tuples = [(x / class_num, 1., 1.)
-                    for x in range(class_num)]
-    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(
-        map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
-            colors))
-    np.random.seed(10101)  # Fixed seed for consistent colors across runs.
-    np.random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
-    np.random.seed(None)  # Reset seed to default.
-
-    vid = cv2.VideoCapture(video_path)
-    if not vid.isOpened():
-        raise IOError("Couldn't open webcam or video")
-    video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
-    video_fps       = vid.get(cv2.CAP_PROP_FPS)
-    video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                        int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    isOutput = True if output_path != "" else False
-    if isOutput:
-        print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
-        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
-    accum_time = 0
-    curr_fps = 0
-    fps = "FPS: ??"
-    prev_time = timer()
-    while True:
-        return_value, frame = vid.read()
-        image = Image.fromarray(frame)
-        result = model.detect_image(image)
-        objects = result['objects']
-        r_image = utils.make_r_image(image, objects, colors)
-        result = np.asarray(r_image)
-        curr_time = timer()
-        exec_time = curr_time - prev_time
-        prev_time = curr_time
-        accum_time = accum_time + exec_time
-        curr_fps = curr_fps + 1
-        if accum_time > 1:
-            accum_time = accum_time - 1
-            fps = "FPS: " + str(curr_fps)
-            curr_fps = 0
-        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.50, color=(255, 0, 0), thickness=2)
-        cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", result)
-        if isOutput:
-            out.write(result)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
     model.close_session()
 
 FLAGS = None
@@ -290,15 +237,13 @@ if __name__ == '__main__':
             'keras-centernet'],
         default='yolo',
         help='Network structure')
-
     parser.add_argument(
-        "--input", nargs='?', type=str,required=False,default=0,
-        help = "Video input path"
+        "-s", "--score", nargs='?', type=float, default=0.01,
+        help="Score thresh"
     )
-
     parser.add_argument(
-        "--output", nargs='?', type=str, default="",
-        help = "[Optional] Video output path"
+        "-u", "--iou", nargs='?', type=float, default=1.0,
+        help="Nms thresh"
     )
 
     FLAGS = parser.parse_args()
@@ -317,6 +262,5 @@ if __name__ == '__main__':
 
     else:
         parser.error("Unknown network")
-
     detect_img(model)
-    # detect_video(model, FLAGS.input, FLAGS.output)  
+

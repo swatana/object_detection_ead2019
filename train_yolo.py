@@ -113,7 +113,7 @@ def _main(train_path, model_path=None, classes_path=None, output_dir=None, epoch
             epochs=100,
             initial_epoch=50,
             callbacks=[logging, checkpoint, reduce_lr, early_stopping])
-        model.save_weights(output_dir + 'trained_weights_final.h5')
+        model.save_weights(os.path.join(output_dir, 'trained_weights_final.h5'))
 
     # Further training if needed.
 

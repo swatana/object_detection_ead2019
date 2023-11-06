@@ -1,0 +1,8 @@
+opencv-python
+scikit-learn
+scikit-image==0.14.2
+tensorflow-gpu==1.15.5
+keras==2.1.6
+protobuf==3.20.3
+imgaug
+IPython[all]

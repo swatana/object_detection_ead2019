@@ -91,13 +91,27 @@ class Evaluator:
             dects = sorted(dects, key=lambda conf: conf[2], reverse=True)
             TP = np.zeros(len(dects))
             FP = np.zeros(len(dects))
-            IoU = np.zeros(len(dects))
+            IoU = np.zeros(len(gts))
             # create dictionary with amount of gts for each image
             det = Counter([cc[0] for cc in gts])
             for key, val in det.items():
                 det[key] = np.zeros(val)
             # print("Evaluating class: %s (%d detections)" % (str(c), len(dects)))
             # Loop through detections
+            # print(gts)
+            # print(dects)
+            area_dects = 0
+            for d in range(len(dects)):
+                # print(dects[d][3])
+                area_dects += Evaluator._getArea(dects[d][3])
+            # print(area_dects)
+            area_gt = 0
+            for g in range(len(gts)):
+                # print(gts[g][3])
+                area_gt += Evaluator._getArea(gts[g][3])
+            # print(area_gt)
+            area_inter = 0
+
             for d in range(len(dects)):
                 # print('dect %s => %s' % (dects[d][0], dects[d][3],))
                 # Find ground truth image
@@ -106,9 +120,14 @@ class Evaluator:
                 for j in range(len(gt)):
                     # print('Ground truth gt => %s' % (gt[j][3],))
                     iou = Evaluator.iou(dects[d][3], gt[j][3])
+                    # print(iou)
+                    if iou > 0:
+                        area_inter += Evaluator._getIntersectionArea(dects[d][3], gt[j][3])
+                    # print(area_inter)
                     if iou > iouMax:
                         iouMax = iou
                         jmax = j
+                        # IoU[jmax] = iouMax
                 # Assign detection as true positive/don't care/false positive
                 if iouMax >= IOUThreshold:
                     if det[dects[d][0]][jmax] == 0:
@@ -122,7 +141,8 @@ class Evaluator:
                 else:
                     FP[d] = 1  # count as false positive
                     # print("FP")
-                IoU[d] = iouMax
+                # IoU[d] = iouMax
+            # print("area_inter", area_inter)
             # compute precision, recall and average precision
             acc_FP = np.cumsum(FP)
             acc_TP = np.cumsum(TP)
@@ -144,7 +164,8 @@ class Evaluator:
                 'total positives': npos,
                 'total TP': np.sum(TP),
                 'total FP': np.sum(FP),
-                'IoU': np.mean(IoU)
+                'IoU': area_inter / (area_dects + area_gt - area_inter)
+                # 'IoU': np.mean(IoU)
             }
             ret.append(r)
         return ret

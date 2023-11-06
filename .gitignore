@@ -1,9 +1,24 @@
+# symlinks
+keras_centernet
+keras-yolo3
+mrcnn
+yolo3
+model_data
+
+# large data
 *.jpg
 *.png
 *.weights
 *.h5
+*.hdf5
 logs/
+results/
 *_test.py
+mscoco2017/
+**/ground-truth/
+
+# .DS_Store
+**/.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

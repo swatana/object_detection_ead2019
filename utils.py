@@ -11,7 +11,7 @@ def take_contours(objects):
         if 'mask' in obj:
             mask = obj['mask']
             # Take contours
-            _, contours, hierarchy = cv2.findContours(
+            contours, hierarchy = cv2.findContours(
                 mask.astype(np.uint8), cv2.RETR_EXTERNAL,
                 cv2.CHAIN_APPROX_SIMPLE)
 
@@ -38,6 +38,7 @@ def take_contours(objects):
 
     return objects
 
+
 def make_r_image(image, objects, colors, alpha=0.3):
     image = np.array(image)
     image = np.array(image[..., ::-1], dtype=np.float32)
@@ -60,8 +61,8 @@ def make_r_image(image, objects, colors, alpha=0.3):
 
         # Label
         cv2.putText(image, "%i %s %.2f" % (class_id, class_name, score),
-                    (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 2,
-                    (255, 255, 255), 2)
+                    (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                    (255, 255, 255))
 
     image = image[..., ::-1]  # Convert back to PIL
     return Image.fromarray(image.astype(np.uint8))
